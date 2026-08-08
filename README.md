@@ -20,6 +20,7 @@ App Auto-Patch simplifies the process of inventorying installed applications and
 	- Managed Preference Key: `<key>ScheduleWorkflowActiveRespectHardDeadline</key>` `<true/>` | `<false/>` (default `false`)
 	- Managed Preference Key: `<key>ScheduleWorkflowActiveSilentOutside</key>` `<true/>` | `<false/>` (default `false`) — outside window: discovery + closed-apps-only silent patch; no dialogs; open apps wait for next window
 	- CLI: `--schedule-workflow-active=` / `--schedule-workflow-active-respect-hard-deadline` / `-off` / `--schedule-workflow-active-silent-outside` / `-off`
+- Fixed: ignored labels disregarded on discovery runs, and `IgnoredLabels="*"` no longer expands into ~1,200 local preference writes that could blank `AAPPatchingStartDate`. Ported from 3.7.0 (#254)
 
 ## New features/Specific Changes in 3.7.0
 - **Pre/Post Patch Scripts** — Run a managed, root-owned script once before and/or after Installomator installations (e.g. `jamf recon`). Scripts must live under `/Library/Management/AppAutoPatch/Hooks/`, cannot be symlinks, and must not be group/world-writable. Managed preferences only — never CLI or local prefs, never `eval`'d. (#156)
@@ -38,6 +39,9 @@ App Auto-Patch simplifies the process of inventorying installed applications and
 	- CLI Trigger: `--preview-deferral-dialog`
 - Changed: if no user is logged in, AAP no longer exits after waiting for the Dock — it waits up to 20 seconds, then continues without an active user session and skips the swiftDialog install/update check. Fully-silent runs still skip the Dock wait entirely
 - Fixed: Teams webhooks now resolve Workspace One device links the same way Slack webhooks already did
+- Fixed: ignored labels were disregarded on any run where app discovery actually executed, so ignored apps were queued and patched anyway. Discovery left `IFS` set to a newline, which broke the ignored-label membership checks and the subtraction that removes them from the install queue. Runs that skipped discovery were unaffected, which made it look intermittent (#254)
+- Fixed: `IgnoredLabels="*"` is no longer expanded into ~1,200 individual local preference entries per run. That write volume desynchronised the preferences cache from the file on disk and made unrelated keys read back blank — most visibly `AAPPatchingStartDate`, producing a "Days Since Patching Start Date" in the tens of thousands and resetting the patching cadence. **No configuration change is required**; `IgnoredLabels="*"` keeps its meaning of "ignore every label except those in `RequiredLabels` and `OptionalLabels`" (#254)
+- Fixed: labels in `RequiredLabels` could be swept into the ignored list by a wildcard in `IgnoredLabels` and then dropped from the queue, so required apps were never patched (#254)
 
 ## New features/Specific Changes in 3.6.2
 - Fixed: the fully-silent Dock-wait skip (introduced in 3.6.1, below) didn't actually take effect - the check that determines whether a run is fully silent ran too late, after the Dock-wait loop it was meant to skip, so `InteractiveMode 0`/`--workflow-install-now-silent` runs still waited on the Dock (and could fail outright on a Mac with no user ever logged in). The Dock wait is now skipped correctly as well
