@@ -3,6 +3,17 @@
 # Version 3
 
 ## Version 3.7.0
+### 08-Aug-2026 (3) - Build 3.7.0.2608081234
+- [#166](https://github.com/App-Auto-Patch/App-Auto-Patch/issues/166): `ScheduleWorkflowActive` (SUPER-compatible workflow schedule windows):
+	- Managed key `ScheduleWorkflowActive` = `DAY:hh:mm-hh:mm,...` (`MON`–`SUN`, 24-hour, comma-separated). Empty/unset = always active (unchanged behavior). Local Mac timezone; same-day ranges only (overnight = two windows)
+	- Early gate after prefs/validation + install-now flags, before Jamf restart / network / discovery: outside a window → set `NextAutoLaunch` to next window start (with a small bump if &lt; ~5 minutes away) and `exit_clean` — no discovery, dialogs, Installomator, or webhooks
+	- Bypass: `--workflow-install-now`, `--workflow-install-now-silent`, `--preview-deferral-dialog`
+	- Default: overdue hard deadline (days or count) bypasses the window via a lightweight read-only check (does not mutate deadline counters / does not sleep). Optional `ScheduleWorkflowActiveRespectHardDeadline` (`true` = even hard deadlines wait for the next window). Soft/focus deadlines still respect the window
+	- All `NextAutoLaunch` writers (`set_auto_launch_deferral`, `set_auto_launch_monthly_cadence`) clamp into the next allowed window when a schedule is configured
+	- Invalid schedule string fails startup validation (`option_error`)
+	- CLI for testing: `--schedule-workflow-active=` / `--schedule-workflow-active-respect-hard-deadline` / `-off`
+	- iMazing + Jamf manifests and All-Options examples updated
+
 ### 08-Aug-2026 (2) - Build 3.7.0.2608081108
 - [#156](https://github.com/App-Auto-Patch/App-Auto-Patch/issues/156): optional pre/post patch script hooks for workflows like `jamf recon` or fixing `.app` ownership after Installomator installs. Security-hardened by design:
 	- Managed preferences only (`PrePatchScript` / `PostPatchScript`) - never CLI, never written to / read from the local preference plist, never `eval`'d or run via `bash -c`
