@@ -15,6 +15,10 @@ This is a user-facing summary of App Auto-Patch releases: what changed, what's n
 	- Managed Preference Key: `<key>ScheduleWorkflowActiveSilentOutside</key>` `<true/>` | `<false/>` — default: `false`. When `true`, outside a window AAP still runs discovery and silently patches **closed apps only** (no dialogs, even if InteractiveMode is 1/2). Open/blocked apps stay queued and wait for the next window.
 	- CLI: `--schedule-workflow-active=...` / `--schedule-workflow-active-respect-hard-deadline` / `-off` / `--schedule-workflow-active-silent-outside` / `-off`
 
+**Behavior Changes**
+
+- Changed: when no custom dialog icon is configured, AAP logs an info message that it is using the SF Symbol fallback instead of a warning that incorrectly said the icon was "not found"
+
 **Fixes**
 
 - Fixed: ignored labels could be silently disregarded on discovery runs, and `IgnoredLabels="*"` no longer expands into ~1,200 local preference writes that could leave `AAPPatchingStartDate` reading blank. Ported from 3.7.0 (#254)

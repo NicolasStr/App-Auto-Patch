@@ -3,6 +3,9 @@
 # Version 3
 
 ## Version 3.8.0
+### 09-Aug-2026 (1) - Build 3.8.0.2608091723
+- Changed: when no custom dialog icon is set, the SF Symbol fallback is logged at info (`Using SF symbol for App Icon`) instead of a warning that claimed the icon was "not found" — an empty icon is expected in that path, so the warning was a false alarm
+
 ### 08-Aug-2026 (2) - Build 3.8.0.2608081636
 - Ported [#254](https://github.com/App-Auto-Patch/App-Auto-Patch/issues/254) from 3.7.0 onto the 3.8.0 line (retains ScheduleWorkflowActive / SilentOutside from build `3.8.0.2608081340`):
 	- Restore `IFS` after discovery label-fragment parsing; replace `" ${array[*]} "` membership checks with exact-element zsh subscripts
