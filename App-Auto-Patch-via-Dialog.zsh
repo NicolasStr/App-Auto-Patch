@@ -6296,6 +6296,22 @@ brew_install_package() {
     return ${brew_exit}
 }
 
+brew_cask_app_is_running() {
+    # True when a cask pseudo-label maps to an application bundle that is currently running.
+    # Used to keep a silent background upgrade from replacing an app underneath the user; those
+    # packages are left queued for the interactive dialog instead.
+    # Formulae, and casks whose icon fell back to an SF Symbol, always return false.
+    local brew_label="$1"
+    [[ "${brew_label}" == brewcask__* ]] || return 1
+
+    local icon="${brewIconPaths[$brew_label]:-}"
+    [[ "${icon}" == /*.app ]] || return 1
+    [[ -d "${icon}" ]] || return 1
+
+    local app_process="${icon:t:r}"
+    /usr/bin/pgrep -x "${app_process}" > /dev/null 2>&1
+}
+
 # ==== END HOMEBREW ====
 
 _resolve_label_staging_info() {
@@ -6458,6 +6474,13 @@ workflow_stage_updates() {
     local stageErrorCount=0
 
     for label in $queuedLabelsArray; do
+        # Homebrew packages have no Installomator fragment and nothing to pre-download;
+        # without this, _resolve_label_staging_info fails once per package and floods the log.
+        if is_brew_label "${label}"; then
+            log_verbose "Skipping staging for Homebrew package '${label}'"
+            continue
+        fi
+
         # On fully-silent runs, don't waste a download on labels we will never silently install.
         # Interactive runs still stage them so Install Now / hard-deadline is fast.
         if { [[ ${InteractiveModeOption} == 0 ]] || [[ "${workflow_install_now_silent_option}" == "TRUE" ]]; } && is_excluded_background_label "${label}"; then
@@ -6588,6 +6611,59 @@ workflow_silent_patch_closed_apps() {
     local silentPatchErrors=0
 
     for label in $queuedLabelsArray; do
+
+        # Homebrew upgrades are silent by nature, so they run here too — that keeps behaviour
+        # consistent across InteractiveModes. A cask whose application is currently running is
+        # left queued for the dialog rather than replaced underneath the user.
+        if is_brew_label "${label}"; then
+            if is_excluded_background_label "${label}"; then
+                log_info "Skipping silent background upgrade of '${label}' (listed in ExcludedBackgroundLabels); adding to user dialog queue."
+                remainingLabels+=("${label}")
+                _compute_version_subtitle "${label}"
+                newAppNamesArray+=("--listitem")
+                if [[ -n "$versionSubtitle" ]]; then
+                    newAppNamesArray+=("$(resolve_label_display_name "${label}"),icon=$(resolve_app_icon_path "${label}"),subtitle=${versionSubtitle}")
+                else
+                    newAppNamesArray+=("$(resolve_label_display_name "${label}"),icon=$(resolve_app_icon_path "${label}")")
+                fi
+                continue
+            fi
+            if brew_cask_app_is_running "${label}"; then
+                log_info "Application for '${label}' is running; adding to user dialog queue."
+                remainingLabels+=("${label}")
+                _compute_version_subtitle "${label}"
+                newAppNamesArray+=("--listitem")
+                if [[ -n "$versionSubtitle" ]]; then
+                    newAppNamesArray+=("$(resolve_label_display_name "${label}"),icon=$(resolve_app_icon_path "${label}"),subtitle=${versionSubtitle}")
+                else
+                    newAppNamesArray+=("$(resolve_label_display_name "${label}"),icon=$(resolve_app_icon_path "${label}")")
+                fi
+                continue
+            fi
+
+            log_info "Silent background upgrade for Homebrew package: ${label}"
+            brew_install_package "${label}"
+            local brewSilentExit=$?
+            if [[ ${brewSilentExit} -eq 0 ]]; then
+                log_notice "Silent background upgrade succeeded for: ${label}"
+                silentPatchCount=$((silentPatchCount + 1))
+                write_aap_receipt "${label}" "${AAPVersionByLabel[$label]:-}" "${brewSilentExit}"
+                remove_aap_report_item "${label}"
+                homebrew_remove_discovered "${label}"
+            else
+                log_warning "Silent background upgrade failed for '${label}' (exit ${brewSilentExit}); adding to user dialog queue."
+                silentPatchErrors=$((silentPatchErrors + 1))
+                remainingLabels+=("${label}")
+                _compute_version_subtitle "${label}"
+                newAppNamesArray+=("--listitem")
+                if [[ -n "$versionSubtitle" ]]; then
+                    newAppNamesArray+=("$(resolve_label_display_name "${label}"),icon=$(resolve_app_icon_path "${label}"),subtitle=${versionSubtitle}")
+                else
+                    newAppNamesArray+=("$(resolve_label_display_name "${label}"),icon=$(resolve_app_icon_path "${label}")")
+                fi
+            fi
+            continue
+        fi
 
         # ExcludedBackgroundLabels: discover/report but do not silently patch. Leave in the
         # remaining queue so InteractiveMode 1/2 can still offer Install Now / hard-deadline.
