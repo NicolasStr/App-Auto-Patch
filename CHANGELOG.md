@@ -36,6 +36,7 @@ This is a user-facing summary of App Auto-Patch releases: what changed, what's n
 
 - Fixed: ignored labels could be silently disregarded on discovery runs, and `IgnoredLabels="*"` no longer expands into ~1,200 local preference writes that could leave `AAPPatchingStartDate` reading blank. Ported from 3.7.0 (#254)
 - Fixed: the temporary wrapper script used when resolving a label's download URL was created at a fixed, predictable path in world-writable `/private/tmp` instead of a randomised one, because a trailing `.sh` in the `mktemp` template stops BSD `mktemp` from substituting the placeholder. That path was written by a root LaunchDaemon, and a crash that left the file behind made every later staging attempt fail until it was removed by hand. Present since 3.6.0 RC3 and shipped in every release since; unrelated to Homebrew support
+- Fixed: the "Preparing updates" progress window could stay on screen for the rest of the run, overlapping the pending-updates dialog and every dialog after it. It only happens when both `WorkflowStageUpdates` and `WorkflowBackgroundPatchClosedApps` are disabled, since the window closed itself before the dialog it belongs to had finished starting up. Pre-existing in 3.8.0; unrelated to Homebrew support
 
 ## Version 3.7.0
 ### 08-Aug-2026
