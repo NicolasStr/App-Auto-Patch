@@ -4,11 +4,16 @@ This is a user-facing summary of App Auto-Patch releases: what changed, what's n
 
 # Version 3
 
-## Version 3.9.0
-### 07-Sep-2026
+## Version 3.8.0
+### 08-Aug-2026
 
 **New Features**
 
+- **Schedule Workflow Active** — Restrict discovery, dialogs, and patching to weekday time windows (SUPER-compatible `DAY:hh:mm-hh:mm` format). Outside a window, AAP only reschedules `NextAutoLaunch` to the next window start — no discovery/dialogs/Installomator — unless Silent Outside is enabled. Deferral and monthly-cadence relaunches are clamped into the next allowed window. Install-now / preview-deferral-dialog bypass the schedule. Overdue hard deadlines bypass by default; set `ScheduleWorkflowActiveRespectHardDeadline` to `true` for strict “never outside hours” mode. (#166)
+	- Managed Preference Key: `<key>ScheduleWorkflowActive</key>` `<string>MON:17:00-23:59,TUE:17:00-23:59,...</string>` — empty/unset = always active
+	- Managed Preference Key: `<key>ScheduleWorkflowActiveRespectHardDeadline</key>` `<true/>` | `<false/>` — default: `false` (hard deadline bypasses the window)
+	- Managed Preference Key: `<key>ScheduleWorkflowActiveSilentOutside</key>` `<true/>` | `<false/>` — default: `false`. When `true`, outside a window AAP still runs discovery and silently patches **closed apps only** (no dialogs, even if InteractiveMode is 1/2). Open/blocked apps stay queued and wait for the next window.
+	- CLI: `--schedule-workflow-active=...` / `--schedule-workflow-active-respect-hard-deadline` / `-off` / `--schedule-workflow-active-silent-outside` / `-off`
 - **Homebrew Support** - Discover and upgrade outdated Homebrew casks and formulae alongside Installomator labels, in the same discovery run, the same user dialog, and the same deferral/deadline/reporting flow. Opt-in; disabled by default. Homebrew runs de-privileged as the owner of the Homebrew prefix, and is skipped entirely when that prefix is root-owned or belongs to someone other than the console user.
 	- Managed Preference Key: `<key>HomebrewEnabled</key>` `<true/>` | `<false/>` - default: `false`
 	- Managed Preference Key: `<key>HomebrewCaskEnabled</key>` `<true/>` | `<false/>` - default: `true`
@@ -23,21 +28,6 @@ This is a user-facing summary of App Auto-Patch releases: what changed, what's n
 	- Casks installed from a `.pkg` that requires an administrator password cannot be upgraded unattended; the failure is logged and counted, and does not abort the run
 	- `--reset-labels` clears the discovered Homebrew queue alongside the other label lists
 
-**Fixes**
-
-- Fixed: the temporary wrapper script used when resolving a label's download URL was created at a fixed, predictable path in world-writable `/private/tmp` instead of a randomised one, because a trailing `.sh` in the `mktemp` template stops BSD `mktemp` from substituting the placeholder. That path was written by a root LaunchDaemon, and a crash that left the file behind made every later staging attempt fail until it was removed by hand. Pre-existing; unrelated to Homebrew support
-
-## Version 3.8.0
-### 08-Aug-2026
-
-**New Features**
-
-- **Schedule Workflow Active** — Restrict discovery, dialogs, and patching to weekday time windows (SUPER-compatible `DAY:hh:mm-hh:mm` format). Outside a window, AAP only reschedules `NextAutoLaunch` to the next window start — no discovery/dialogs/Installomator — unless Silent Outside is enabled. Deferral and monthly-cadence relaunches are clamped into the next allowed window. Install-now / preview-deferral-dialog bypass the schedule. Overdue hard deadlines bypass by default; set `ScheduleWorkflowActiveRespectHardDeadline` to `true` for strict “never outside hours” mode. (#166)
-	- Managed Preference Key: `<key>ScheduleWorkflowActive</key>` `<string>MON:17:00-23:59,TUE:17:00-23:59,...</string>` — empty/unset = always active
-	- Managed Preference Key: `<key>ScheduleWorkflowActiveRespectHardDeadline</key>` `<true/>` | `<false/>` — default: `false` (hard deadline bypasses the window)
-	- Managed Preference Key: `<key>ScheduleWorkflowActiveSilentOutside</key>` `<true/>` | `<false/>` — default: `false`. When `true`, outside a window AAP still runs discovery and silently patches **closed apps only** (no dialogs, even if InteractiveMode is 1/2). Open/blocked apps stay queued and wait for the next window.
-	- CLI: `--schedule-workflow-active=...` / `--schedule-workflow-active-respect-hard-deadline` / `-off` / `--schedule-workflow-active-silent-outside` / `-off`
-
 **Behavior Changes**
 
 - Changed: when no custom dialog icon is configured, AAP logs an info message that it is using the SF Symbol fallback instead of a warning that incorrectly said the icon was "not found"
@@ -45,6 +35,7 @@ This is a user-facing summary of App Auto-Patch releases: what changed, what's n
 **Fixes**
 
 - Fixed: ignored labels could be silently disregarded on discovery runs, and `IgnoredLabels="*"` no longer expands into ~1,200 local preference writes that could leave `AAPPatchingStartDate` reading blank. Ported from 3.7.0 (#254)
+- Fixed: the temporary wrapper script used when resolving a label's download URL was created at a fixed, predictable path in world-writable `/private/tmp` instead of a randomised one, because a trailing `.sh` in the `mktemp` template stops BSD `mktemp` from substituting the placeholder. That path was written by a root LaunchDaemon, and a crash that left the file behind made every later staging attempt fail until it was removed by hand. Pre-existing; unrelated to Homebrew support
 
 ## Version 3.7.0
 ### 08-Aug-2026

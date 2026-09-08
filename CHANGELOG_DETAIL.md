@@ -2,8 +2,8 @@
 
 # Version 3
 
-## Version 3.9.0
-### 07-Sep-2026 (1) - Build 3.9.0.2609071200
+## Version 3.8.0
+### 08-Sep-2026 (1) - Build 3.8.0.2609081200
 - Homebrew cask and formula support, ported from the `3.6.0_Homebrew` branch onto the 3.8.0 line and reworked for the machinery added since:
 	- Outdated packages are queued as pseudo-labels (`brewcask__<name>` / `brewformula__<name>`) at the end of discovery, so deferral, hard deadlines, the unified dialog list, notifications, the Dock badge and `ExcludedBackgroundLabels` all apply to them without special-casing
 	- Queue persisted in a dedicated `HomebrewDiscoveredPackages` array rather than `DiscoveredLabels`. `DiscoveredLabels` is read back through `tr -c -d "[:alnum:][:space:][\-_]"`, which strips `@`, `.` and `+` and would rewrite `brewformula__openssl@3` as `brewformula__openssl3` - a package name that does not exist. The new key is written and read with `PlistBuddy` only
@@ -22,7 +22,6 @@
 
 - Fixed: `_resolve_label_staging_info` created its temporary wrapper script with `mktemp /private/tmp/aap_lbl_XXXXXX.sh`. BSD `mktemp` only substitutes `XXXXXX` when it is the final component of the template, so the trailing `.sh` left the placeholder literal and every invocation used the same fixed, world-guessable path in world-writable `/private/tmp`, written by a root LaunchDaemon. It also self-collided: any crash that skipped the `rm -f` left the file behind and made every later call fail with `mkstemp failed: File exists` until it was deleted by hand. The suffix has been removed so the path is randomised. Pre-existing since the staging workflow was introduced; not related to Homebrew support
 
-## Version 3.8.0
 ### 09-Aug-2026 (1) - Build 3.8.0.2608091723
 - Changed: when no custom dialog icon is set, the SF Symbol fallback is logged at info (`Using SF symbol for App Icon`) instead of a warning that claimed the icon was "not found" — an empty icon is expected in that path, so the warning was a false alarm
 
